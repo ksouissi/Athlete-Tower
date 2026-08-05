@@ -389,7 +389,7 @@ xi.s = strength of athlete i
 
 Sort athletes by decreasing weight and, for equal weights, by decreasing strength, yielding a sequence x0, ... xn-1 such that 0 <= i < j < n => !(xj.s > xi.s)
 
-S = for each height, min. weight of all towers of that height, so far	(* 0 < i <= n => S[i] = M = x0.w + ... xn-1.w = max tower weight
+S = for each height, min. weight of all towers of that height, so far	(* 0 < i <= n => S[i] = M = x0.w + ... xn-1.w + 1 = max tower weight + 1
 																			S[0] = 0 = weight of tower of height 0 *)
 ===
 
@@ -464,9 +464,17 @@ while (r >= 0) {
 }
 
 h = height of the tallest towers over x0, ... xn-1
+
+*******
+
+Now drop xi.w > xj.w => xi.s > xj.s
+
+*******
+
+16)
 */
 
-/* Please notice that if xj.w+xj.s >= xi.w+xi.s and (xi, xj) is a tower, then (xj, xi) is also a tower with no less remaining weight-room = min(xj.s - xi.w, xi.s),
+/* Please notice that if xj.w+xj.s >= xi.w+xi.s and (xi, xj) (that is, xj on top of xi) is a tower, then (xj, xi) is also a tower with no less remaining weight-room = min(xj.s - xi.w, xi.s),
 	and if (xj, xi) is no tower then neither is (xi, xj): there is no point in placing xj after xi, regardless of (xi.w > xj.w => xi.s > xj.s) => xi.w + xi.s > xj.w + xj.s.
 	Conclusion: the athletes shall be ordered by descending weight + strength. */
 
@@ -508,6 +516,7 @@ L1:
 }
 
 /* n > 0, x sorted */
+/* relies on xi.w >= xj.w => xi.s >= xj.s */
 int f(int n) {
 	int l = 0, r = n-2, h = 1, m;
 	__int64 w = x[n-1].w;	/* because acc. */
@@ -530,6 +539,34 @@ int f(int n) {
 	return h;
 }
 
+/* slow, works without xi.w > xj.w => xi.s > xj.s */
+__int64 S[100001];	/* S[i] = lightest tower, so far, of height i, S[0] = 0 */
+int g(int n)
+{
+	int i, j, m;	/* m = max. tower height so far + 1 */
+
+	i = n;
+	do {
+		S[i] = 200000000001;	/* 100000 athletes * 2000000 max. weight + 1 */
+	} while (--i);
+	S[0] = 0;
+	m = 1;	/* max. height so far + 1 */
+	i = n-1;
+	do {
+		j = m;
+		if (x[i].s >= S[j-1] && x[i].w + S[j-1] < S[j]) {
+			m++;
+			S[j] = x[i].w + S[j-1];
+		}
+		while (--j) {	/* j == m check already taken care of, above */
+			if (x[i].s >= S[j-1] && x[i].w + S[j-1] < S[j])
+				S[j] = x[i].w + S[j-1];
+		}
+	} while (i--);
+
+	return m-1;	/* = height of the tallest towers over x0, ... xn-1 */
+}
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -549,7 +586,7 @@ int main(int argc, char *argv[]) {
 		radix_sort(0, n-1, 21);	/* 2^21 < 2000000 + 2000000 < 2^22 */
 		/* for (i = 0; i < n; i++)
 			printf("(%d, %d) ", x[i].w, x[i].s); */
-		printf("%d", f(n));
+		printf("f(%d) = %d, g(%d) = %d", n, f(n), n, g(n));
 	} else	/* not sequence of pairs */
 		printf("Usage: tower.exe (<weight> <strength>)*");
 	return 0;
